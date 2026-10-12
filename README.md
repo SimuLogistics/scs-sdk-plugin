@@ -9,6 +9,29 @@
 
 fork of [nlhans](https://github.com/nlhans/ets2-sdk-plugin) work
 
+
+## SimuLogistics fork
+
+This fork builds the plugin for Windows, Linux and macOS and writes the telemetry to its own shared memory:
+
+| Platform | Plugin file | Shared memory |
+|---|---|---|
+| Windows | `SimuLogistics-Telemetry.dll` in `bin/win_x64/plugins` | `Local\SimuLogisticsTelemetry` (file mapping) |
+| Linux | `SimuLogistics-Telemetry.so` in `bin/linux_x64/plugins` | `/SimuLogisticsTelemetry` (POSIX `shm_open`) |
+| macOS | `SimuLogistics-Telemetry.dylib` in the game's `plugins` folder | `/SimuLogisticsTelemetry` (POSIX `shm_open`) |
+
+The memory layout is unchanged (revision 12), so `trucksim-telemetry` reads it with `truckSimTelemetry({ sharedMemoryName })`. The layout is checked at compile time with `static_assert`, so all compilers produce the same offsets.
+
+Build with CMake (the Visual Studio solution still works on Windows):
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+ctest --test-dir build -C Release   # loads the plugin with stub SDK callbacks
+```
+
+CI builds the three binaries on every push; pushing a `v*` tag attaches them to a GitHub release.
+
 # SCS Telemetry for EuroTruckSimulator 2 and AmericanTruckSimulator
 
 SCS has kindly released a SDK that allows developers and users to stream telemetry data from the game to any 3rd party applications. An example program was provided (and often used) which enabled streaming data by using text files stored on the users harddisk. This puts unnecessary stress on the users harddrive (not the mention the number of re-writes that would hurt SSDs), and moreover requires the user to manually configure the telemetry data source.
