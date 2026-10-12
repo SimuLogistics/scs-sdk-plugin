@@ -20,7 +20,15 @@ This fork builds the plugin for Windows, Linux and macOS and writes the telemetr
 | Linux | `SimuLogistics-Telemetry.so` in `bin/linux_x64/plugins` | `/SimuLogisticsTelemetry` (POSIX `shm_open`) |
 | macOS | `SimuLogistics-Telemetry.dylib` in the game's `plugins` folder | `/SimuLogisticsTelemetry` (POSIX `shm_open`) |
 
-The memory layout is unchanged (revision 12), so `trucksim-telemetry` reads it with `truckSimTelemetry({ sharedMemoryName })`. The layout is checked at compile time with `static_assert`, so all compilers produce the same offsets.
+The plugin is built against SCS SDK 1.15 (ETS2 telemetry 1.20, ATS 1.07) and writes plugin revision 13. Revision 13 keeps every revision 12 offset and only appends a 15th zone at offset 21600, so revision 12 readers such as `trucksim-telemetry` (`truckSimTelemetry({ sharedMemoryName })`) keep working and ignore it:
+
+| Offset | Field | Source |
+|---|---|---|
+| 21600 | `sdk115.nextMandatoryBreak` (int, in-game minutes) | channel `mandatory.break` (ETS2 1.19+, ATS 1.06+) |
+| 21604 | `sdk115.onBusJob` (bool) | config `bus_job` is not empty (attributes not documented by SCS yet) |
+| 21608 | `carJob` (744 bytes) | config `car_job`, events `car_job.delivered` / `car_job.cancelled` (ATS 1.07+) |
+
+See `scsTelemetryMap_t` in `scs-telemetry/inc/scs-telemetry-common.hpp` for the `carJob` fields; `static_assert`s pin every offset. The layout is checked at compile time with `static_assert`, so all compilers produce the same offsets.
 
 Build with CMake (the Visual Studio solution still works on Windows):
 

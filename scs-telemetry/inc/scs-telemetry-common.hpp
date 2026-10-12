@@ -7,7 +7,7 @@
 // - Shared memory map struct layout
 // - [..]
 
-#define PLUGIN_REVID					12
+#define PLUGIN_REVID					13
 
 #define ETS2                            1
 #define ATS                             2
@@ -50,8 +50,8 @@
 
 bool check_min_version(unsigned const int min_ets2, unsigned const int min_ats);
 bool check_max_version(unsigned const int min_ets2, unsigned const int min_ats);
-enum configType { substances, controls, hshifter, truck, trailer, job };
-enum gameplayType { cancelled, delivered, fined, tollgate, ferry, train };
+enum configType { substances, controls, hshifter, truck, trailer, job, car_job };
+enum gameplayType { cancelled, delivered, fined, tollgate, ferry, train, car_job_cancelled, car_job_delivered };
 void log_line(scs_log_type_t type, const char* text, ...);
 void log_line(const char* text, ...);
 
@@ -557,13 +557,71 @@ typedef struct scsTelemetryMap_s
 		scsTrailer_t trailer[10];
 	}trailer;
 
-	//----- END OF 14TH ZONE AT OFFSET 21619 -----//
+	//----- END OF 14TH ZONE AT OFFSET 21599 -----//
+
+	//----- START OF 15TH ZONE AT OFFSET 21600 -----//
+	// The 15th zone holds the SCS SDK 1.15 additions (plugin revision 13).
+	// Everything before it is unchanged from revision 12, so revision 12
+	// readers keep working and simply ignore this zone.
+
+	// Values outside of any job
+	struct {
+		// Time until the next required mandatory break, in in-game minutes
+		// (channel mandatory.break, ETS2 1.19+ / ATS 1.06+)
+		int nextMandatoryBreak;
+		// A bus job is active. Its attributes are not documented by SCS yet
+		// (config bus_job, ETS2 1.20+)
+		bool onBusJob;
+		char placeHolder[3];
+	}sdk115;
+
+	// Car job (config car_job and events car_job.delivered / car_job.cancelled, ATS 1.07+)
+	// The bools jobFinished, jobDelivered and jobCancelled flip on every event,
+	// like their truck job counterparts in special_b.
+	struct {
+		unsigned long long income;
+		long long deliveredRevenue;
+		long long cancelledPenalty;
+		unsigned int cargoUnitCount;
+		// Absolute in-game time in minutes, like common_ui.time_abs
+		unsigned int deliveryTime;
+		unsigned int plannedDistanceKm;
+		unsigned int startingTime;
+		unsigned int finishedTime;
+		// Time spent on the job, in in-game minutes
+		unsigned int deliveredDeliveryTime;
+		int deliveredEarnedXp;
+		float deliveredCargoDamage;
+		float deliveredVehicleDamage;
+		float deliveredDistanceKm;
+		bool onJob;
+		bool jobFinished;
+		bool jobDelivered;
+		bool jobCancelled;
+		bool customerPrioCargoHandling;
+		bool customerPrioTime;
+		bool customerPrioVehicleAppearance;
+		char placeHolder;
+		char cargoId[stringsize];
+		char cargo[stringsize];
+		char cityDstId[stringsize];
+		char cityDst[stringsize];
+		char citySrcId[stringsize];
+		char citySrc[stringsize];
+		char compDstId[stringsize];
+		char compDst[stringsize];
+		char compSrcId[stringsize];
+		char compSrc[stringsize];
+		// quick_job or dispatch_job
+		char jobMarket[32];
+	}carJob;
+	//----- END OF 15TH ZONE AT OFFSET 22351 -----//
 } scsTelemetryMap_t;
 
 // Readers parse the map at fixed offsets, so every compiler (MSVC, GCC, Clang)
 // must produce exactly this layout. Fail the build otherwise.
 static_assert(sizeof(scsTrailer_t) == 1560, "scsTrailer_t layout changed");
-static_assert(sizeof(scsTelemetryMap_t) == 21600, "scsTelemetryMap_t layout changed");
+static_assert(sizeof(scsTelemetryMap_t) == 22352, "scsTelemetryMap_t layout changed");
 static_assert(SCS_PLUGIN_MMF_SIZE >= sizeof(scsTelemetryMap_t), "shared memory too small");
 static_assert(offsetof(scsTelemetryMap_t, scs_values) == 40, "zone scs_values moved");
 static_assert(offsetof(scsTelemetryMap_t, common_i) == 500, "zone common_i moved");
@@ -578,5 +636,7 @@ static_assert(offsetof(scsTelemetryMap_t, gameplay_ll) == 4200, "zone gameplay_l
 static_assert(offsetof(scsTelemetryMap_t, special_b) == 4300, "zone special_b moved");
 static_assert(offsetof(scsTelemetryMap_t, substances) == 4400, "zone substances moved");
 static_assert(offsetof(scsTelemetryMap_t, trailer) == 6000, "zone trailer moved");
+static_assert(offsetof(scsTelemetryMap_t, sdk115) == 21600, "zone sdk115 moved");
+static_assert(offsetof(scsTelemetryMap_t, carJob) == 21608, "zone carJob moved");
 
 #endif

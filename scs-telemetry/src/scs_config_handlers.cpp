@@ -130,6 +130,28 @@ const scsConfigHandler_t job_config[] = {
     {SCS_TELEMETRY_CONFIG_ATTRIBUTE_planned_distance_km,
      handleJobPlannedDistanceKm}};
 
+// const: car_job_config
+// all handles with config id `car_job` (SDK 1.15)
+const scsConfigHandler_t car_job_config[] = {
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_cargo_id, handleCarJobCargoId},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_cargo, handleCarJobCargo},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_destination_city_id, handleCarJobCityDstId},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_destination_city, handleCarJobCityDst},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_source_city_id, handleCarJobCitySrcId},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_source_city, handleCarJobCitySrc},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_destination_company_id, handleCarJobCompDstId},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_destination_company, handleCarJobCompDst},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_source_company_id, handleCarJobCompSrcId},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_source_company, handleCarJobCompSrc},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_income, handleCarJobIncome},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_delivery_time, handleCarJobDeliveryTime},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_car_job_market, handleCarJobJobMarket},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_cargo_unit_count, handleCarJobUnitCount},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_planned_distance_km, handleCarJobPlannedDistanceKm},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_customer_prio_cargo_handling, handleCarJobPrioCargoHandling},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_customer_prio_time, handleCarJobPrioTime},
+    {SCS_TELEMETRY_CONFIG_ATTRIBUTE_customer_prio_vehicle_appearance, handleCarJobPrioVehicleAppearance}};
+
 // const: length_configs
 // contains the length of the handle config arrays
 const int length_configs[] = {
@@ -138,7 +160,8 @@ const int length_configs[] = {
     sizeof hshifter_config / sizeof *hshifter_config,
     sizeof truck_config / sizeof *truck_config,
     sizeof trailer_config / sizeof *trailer_config,
-    sizeof job_config / sizeof *job_config};
+    sizeof job_config / sizeof *job_config,
+    sizeof car_job_config / sizeof *car_job_config};
 #pragma endregion Contains all handler arrays
 
 /* Function: handleCfg
@@ -177,6 +200,9 @@ bool handleCfg(const scs_named_value_t* info, const configType type,
       break;
     case job:
       configs = job_config;
+      break;
+    case car_job:
+      configs = car_job_config;
       break;
     default:
       return false;
@@ -670,3 +696,91 @@ scsConfigHandle(Job, PlannedDistanceKm) {
   telem_ptr->config_ui.plannedDistanceKm = current->value.value_u32.value;
 }
 #pragma endregion All handler of the id job
+
+#pragma region handleCarJob
+// Strings keep a terminating zero: the zone is cleared before each car_job
+// configuration, so copying one byte less than the field is enough.
+scsConfigHandle(CarJob, CargoId) {
+  strncpy(telem_ptr->carJob.cargoId, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, Cargo) {
+  strncpy(telem_ptr->carJob.cargo, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CityDstId) {
+  strncpy(telem_ptr->carJob.cityDstId, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CityDst) {
+  strncpy(telem_ptr->carJob.cityDst, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CitySrcId) {
+  strncpy(telem_ptr->carJob.citySrcId, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CitySrc) {
+  strncpy(telem_ptr->carJob.citySrc, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CompDstId) {
+  strncpy(telem_ptr->carJob.compDstId, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CompDst) {
+  strncpy(telem_ptr->carJob.compDst, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CompSrcId) {
+  strncpy(telem_ptr->carJob.compSrcId, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, CompSrc) {
+  strncpy(telem_ptr->carJob.compSrc, current->value.value_string.value,
+          stringsize - 1);
+}
+
+scsConfigHandle(CarJob, Income) {
+  telem_ptr->carJob.income = current->value.value_u64.value;
+}
+
+scsConfigHandle(CarJob, DeliveryTime) {
+  telem_ptr->carJob.deliveryTime = current->value.value_u32.value;
+}
+
+scsConfigHandle(CarJob, JobMarket) {
+  strncpy(telem_ptr->carJob.jobMarket, current->value.value_string.value,
+          sizeof telem_ptr->carJob.jobMarket - 1);
+}
+
+scsConfigHandle(CarJob, UnitCount) {
+  telem_ptr->carJob.cargoUnitCount = current->value.value_u32.value;
+}
+
+scsConfigHandle(CarJob, PlannedDistanceKm) {
+  telem_ptr->carJob.plannedDistanceKm = current->value.value_u32.value;
+}
+
+scsConfigHandle(CarJob, PrioCargoHandling) {
+  telem_ptr->carJob.customerPrioCargoHandling = current->value.value_bool.value;
+}
+
+scsConfigHandle(CarJob, PrioTime) {
+  telem_ptr->carJob.customerPrioTime = current->value.value_bool.value;
+}
+
+scsConfigHandle(CarJob, PrioVehicleAppearance) {
+  telem_ptr->carJob.customerPrioVehicleAppearance =
+      current->value.value_bool.value;
+}
+#pragma endregion All handler of the id car_job

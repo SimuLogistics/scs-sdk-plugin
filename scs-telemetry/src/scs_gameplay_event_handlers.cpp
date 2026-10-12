@@ -65,13 +65,32 @@ const scsGameplayEventHandler_t train_gameplay[] = {
         {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_target_id, handleTrainTargetId}
 };
 
+// const: car_job_cancelled_gameplay
+// handle gameplayevent id `car_job.cancelled` (SDK 1.15)
+const scsGameplayEventHandler_t car_job_cancelled_gameplay[] = {
+    {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_cancel_penalty, handleCarJobCancelledPenalty}
+};
+
+// const: car_job_delivered_gameplay
+// handle gameplayevent id `car_job.delivered` (SDK 1.15)
+const scsGameplayEventHandler_t car_job_delivered_gameplay[] = {
+        {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_revenue, handleCarJobDeliveredRevenue},
+        {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_earned_xp, handleCarJobDeliveredEarnedXp},
+        {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_cargo_damage, handleCarJobDeliveredCargoDamage},
+        {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_vehicle_damage, handleCarJobDeliveredVehicleDamage},
+        {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_distance_km, handleCarJobDeliveredDistanceKm},
+        {SCS_TELEMETRY_GAMEPLAY_EVENT_ATTRIBUTE_delivery_time, handleCarJobDeliveredDeliveryTime}
+};
+
 const int length_gameplays[] = {
     sizeof cancelled_gameplay / sizeof*cancelled_gameplay,
     sizeof delivered_gameplay / sizeof*delivered_gameplay,
     sizeof fined_gameplay / sizeof*fined_gameplay,
     sizeof tollgate_gameplay / sizeof*tollgate_gameplay,
     sizeof ferry_gameplay / sizeof*ferry_gameplay,
-    sizeof train_gameplay / sizeof*train_gameplay
+    sizeof train_gameplay / sizeof*train_gameplay,
+    sizeof car_job_cancelled_gameplay / sizeof*car_job_cancelled_gameplay,
+    sizeof car_job_delivered_gameplay / sizeof*car_job_delivered_gameplay
 };
 #pragma endregion Contains all handler arrays
 
@@ -100,6 +119,12 @@ bool handleGpe(const scs_named_value_t* info, const gameplayType type) {
         break;
     case train:
         gameplay = train_gameplay;
+        break;
+    case car_job_cancelled:
+        gameplay = car_job_cancelled_gameplay;
+        break;
+    case car_job_delivered:
+        gameplay = car_job_delivered_gameplay;
         break;
     default:
         // something went wrong
@@ -282,3 +307,37 @@ scsGameplayEventHandle(Train, TargetId) {
 
 
 #pragma endregion All handler of the id player.use.ferry
+
+
+#pragma region handleCarJob
+// Events called when a car job is cancelled or delivered (SDK 1.15).
+
+scsGameplayEventHandle(CarJobCancelled, Penalty) {
+    telem_ptr->carJob.cancelledPenalty = current->value.value_s64.value;
+}
+
+scsGameplayEventHandle(CarJobDelivered, Revenue) {
+    telem_ptr->carJob.deliveredRevenue = current->value.value_s64.value;
+}
+
+scsGameplayEventHandle(CarJobDelivered, EarnedXp) {
+    telem_ptr->carJob.deliveredEarnedXp = current->value.value_s32.value;
+}
+
+scsGameplayEventHandle(CarJobDelivered, CargoDamage) {
+    telem_ptr->carJob.deliveredCargoDamage = current->value.value_float.value;
+}
+
+scsGameplayEventHandle(CarJobDelivered, VehicleDamage) {
+    telem_ptr->carJob.deliveredVehicleDamage = current->value.value_float.value;
+}
+
+scsGameplayEventHandle(CarJobDelivered, DistanceKm) {
+    telem_ptr->carJob.deliveredDistanceKm = current->value.value_float.value;
+}
+
+scsGameplayEventHandle(CarJobDelivered, DeliveryTime) {
+    telem_ptr->carJob.deliveredDeliveryTime = current->value.value_u32.value;
+}
+
+#pragma endregion All handler of the ids car_job.cancelled and car_job.delivered
