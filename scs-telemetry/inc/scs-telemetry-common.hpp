@@ -21,8 +21,18 @@
 #define SDK_ENABLE_LOGGING
 #endif
 
+#include <cstddef>
 #include "scssdk.h"
-#define SCS_PLUGIN_MMF_NAME TEXT("Local\\SCSTelemetry")
+// Name of the shared memory. Windows uses a named file mapping, Linux and macOS
+// use POSIX shared memory (shm_open), whose names must start with a slash.
+// Override at build time with -DSCS_PLUGIN_MMF_NAME=... if needed.
+#ifndef SCS_PLUGIN_MMF_NAME
+#ifdef _WIN32
+#define SCS_PLUGIN_MMF_NAME "Local\\SimuLogisticsTelemetry"
+#else
+#define SCS_PLUGIN_MMF_NAME "/SimuLogisticsTelemetry"
+#endif
+#endif
 #define SCS_PLUGIN_MMF_SIZE (32*1024)
 /**
  * \brief string size for all strings (most of them) the amount of fields in the shared memory field
@@ -549,5 +559,24 @@ typedef struct scsTelemetryMap_s
 
 	//----- END OF 14TH ZONE AT OFFSET 21619 -----//
 } scsTelemetryMap_t;
+
+// Readers parse the map at fixed offsets, so every compiler (MSVC, GCC, Clang)
+// must produce exactly this layout. Fail the build otherwise.
+static_assert(sizeof(scsTrailer_t) == 1560, "scsTrailer_t layout changed");
+static_assert(sizeof(scsTelemetryMap_t) == 21600, "scsTelemetryMap_t layout changed");
+static_assert(SCS_PLUGIN_MMF_SIZE >= sizeof(scsTelemetryMap_t), "shared memory too small");
+static_assert(offsetof(scsTelemetryMap_t, scs_values) == 40, "zone scs_values moved");
+static_assert(offsetof(scsTelemetryMap_t, common_i) == 500, "zone common_i moved");
+static_assert(offsetof(scsTelemetryMap_t, common_f) == 700, "zone common_f moved");
+static_assert(offsetof(scsTelemetryMap_t, config_b) == 1500, "zone config_b moved");
+static_assert(offsetof(scsTelemetryMap_t, config_fv) == 1640, "zone config_fv moved");
+static_assert(offsetof(scsTelemetryMap_t, truck_fp) == 2000, "zone truck_fp moved");
+static_assert(offsetof(scsTelemetryMap_t, truck_dp) == 2200, "zone truck_dp moved");
+static_assert(offsetof(scsTelemetryMap_t, config_s) == 2300, "zone config_s moved");
+static_assert(offsetof(scsTelemetryMap_t, config_ull) == 4000, "zone config_ull moved");
+static_assert(offsetof(scsTelemetryMap_t, gameplay_ll) == 4200, "zone gameplay_ll moved");
+static_assert(offsetof(scsTelemetryMap_t, special_b) == 4300, "zone special_b moved");
+static_assert(offsetof(scsTelemetryMap_t, substances) == 4400, "zone substances moved");
+static_assert(offsetof(scsTelemetryMap_t, trailer) == 6000, "zone trailer moved");
 
 #endif

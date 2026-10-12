@@ -1,6 +1,8 @@
 #ifndef SHAREDMEMORY_HPP
 #define SHAREDMEMORY_HPP
+#ifdef _WIN32
 #include <windows.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include "scs-telemetry-common.hpp"
@@ -13,15 +15,22 @@
 	#endif
 #endif
 
+// Named shared memory block the telemetry is written to.
+// Windows: named file mapping (CreateFileMapping).
+// Linux / macOS: POSIX shared memory (shm_open + mmap).
 class SharedMemory
 {
 protected:
 
-        LPCWSTR namePtr;
-        int mapsize;
+        const char* namePtr;
+        unsigned int mapsize;
 
 		// MMF specifics
+#ifdef _WIN32
         HANDLE hMapFile;
+#else
+        int fd;
+#endif
         void* pBufferPtr;
 
 		// Status about hook
@@ -38,7 +47,7 @@ public:
         bool Hooked() { return isSharedMemoryHooked; }
         void* GetBuffer() { return pBufferPtr; }
 
-        SharedMemory(LPCWSTR newNamePtr, unsigned int size);
+        SharedMemory(const char* newNamePtr, unsigned int size);
         void Close();
 
 		void* getPtrAt(int offset) { return (void*) &(((unsigned char*)pBufferPtr)[offset]); }

@@ -2,14 +2,18 @@
 
 // TODO: cleanup file 900 lines are to many and there is much to do in an other
 // file or class
+#ifdef _WIN32
 #define WINVER 0x0500
 #define WIN32_WINNT 0x0500
 
 #include <windows.h>
+#endif
 
 #include <algorithm>
 #include <cassert>
 #include <cstdarg>
+#include <cstdio>
+#include <cstring>
 #include <string>
 // SDK
 #include "amtrucks/scssdk_ats.h"
@@ -26,6 +30,14 @@
 #include "sharedmemory.hpp"
 
 #define UNUSED(x)
+
+// Exported entry points. On Windows the .def file exports them; elsewhere the
+// library is built with hidden visibility, so mark them explicitly.
+#ifdef _WIN32
+#define SCS_PLUGIN_EXPORT
+#else
+#define SCS_PLUGIN_EXPORT __attribute__((visibility("default")))
+#endif
 /**
  * These macro's are a shortcut to register channels inside the
  * scs_telemetry_init function They require the channel definition name (without
@@ -67,7 +79,7 @@ scsTelemetryMap_t* telem_ptr;
 
 // const: scs_mmf_name
 // Name/Location of the Shared Memory
-const wchar_t* scs_mmf_name = SCS_PLUGIN_MMF_NAME;
+const char* scs_mmf_name = SCS_PLUGIN_MMF_NAME;
 
 // ptr: game_log
 // Used to write to the game log
@@ -95,7 +107,7 @@ void log_line(const scs_log_type_t type, const char* const text, ...) {
 
   va_list args;
   va_start(args, text);
-  vsnprintf_s(formated, sizeof formated, _TRUNCATE, text, args);
+  vsnprintf(formated, sizeof formated, text, args);
   formated[sizeof formated - 1] = 0;
   va_end(args);
 
@@ -112,7 +124,7 @@ void log_line(const char* const text, ...) {
 
   va_list args;
   va_start(args, text);
-  vsnprintf_s(formated, sizeof formated, _TRUNCATE, text, args);
+  vsnprintf(formated, sizeof formated, text, args);
   formated[sizeof formated - 1] = 0;
   va_end(args);
 
@@ -580,7 +592,7 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
       // TODO: DELETE ENTRIES WHEN CALLED SO NO VALUE IS THERE to avoid wrong
       // values when changes occur but not in arrays up to that slot or so
       event_info);
-  unsigned int trailer_id = NULL;
+  unsigned int trailer_id = 0;
   // check which type the event has
   configType type = {};
   if (strcmp(info->id, SCS_TELEMETRY_CONFIG_substances) == 0) {
@@ -768,7 +780,7 @@ SCSAPI_VOID telemetry_store_fplacement(const scs_string_t name,
  * See scssdk_telemetry.h
  */
 
-SCSAPI_RESULT scs_telemetry_init(
+SCS_PLUGIN_EXPORT SCSAPI_RESULT scs_telemetry_init(
     const scs_u32_t version, const scs_telemetry_init_params_t* const params) {
   // We currently support only two version.
   // TODO test this first test seems to work
@@ -1195,7 +1207,7 @@ SCSAPI_RESULT scs_telemetry_init(
  *
  * See scssdk_telemetry.h
  */
-SCSAPI_VOID scs_telemetry_shutdown() {
+SCS_PLUGIN_EXPORT SCSAPI_VOID scs_telemetry_shutdown() {
 #if LOGGING
   logger::flush();
 #endif
@@ -1221,6 +1233,7 @@ SCSAPI_VOID scs_telemetry_shutdown() {
 
 // Telemetry api.
 
+#ifdef _WIN32
 // ReSharper disable once CppInconsistentNaming
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason_for_call, LPVOID reseved) {
   if (reason_for_call == DLL_PROCESS_DETACH) {
@@ -1228,3 +1241,4 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason_for_call, LPVOID reseved) {
   }
   return TRUE;
 }
+#endif
