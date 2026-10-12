@@ -1,5 +1,15 @@
 # Changelog
 
+## Rev 13 (SimuLogistics fork)
+
+- update to SCS SDK 1.15 (ETS2 telemetry 1.20, ATS 1.07)
+- new 15th zone at offset 21600, all revision 12 offsets are unchanged:
+  - `sdk115.nextMandatoryBreak`: channel `mandatory.break`
+  - `sdk115.onBusJob`: a bus job is active (its attributes are not documented by SCS yet)
+  - `carJob`: config `car_job` and events `car_job.delivered` / `car_job.cancelled`
+- fix: an unknown gameplay event (like `car_job.delivered` before this update) was handled as `job.cancelled` and wiped the truck job values
+- shared memory renamed to `Local\SimuLogisticsTelemetry` (Windows) / `/SimuLogisticsTelemetry` (Linux, macOS), Linux and macOS builds
+
 ## Rev 12, Update 1
 
 - fix: add check to avoid a race condition when converting the data

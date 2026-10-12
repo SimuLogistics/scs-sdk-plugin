@@ -53,6 +53,16 @@ scsGameplayEventHandle(Train, SourceId);
 scsGameplayEventHandle(Train, TargetId);
 
 
+// Car job (SDK 1.15)
+scsGameplayEventHandle(CarJobCancelled, Penalty);
+scsGameplayEventHandle(CarJobDelivered, Revenue);
+scsGameplayEventHandle(CarJobDelivered, EarnedXp);
+scsGameplayEventHandle(CarJobDelivered, CargoDamage);
+scsGameplayEventHandle(CarJobDelivered, VehicleDamage);
+scsGameplayEventHandle(CarJobDelivered, DistanceKm);
+scsGameplayEventHandle(CarJobDelivered, DeliveryTime);
+
+
 bool handleGpe(const scs_named_value_t* info,const gameplayType type );
 
 #endif

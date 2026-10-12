@@ -387,6 +387,44 @@ void set_job_values_zero() {
   memset(telem_ptr->config_s.jobMarket, 0, 32);
 }
 
+// Function: clear_car_job_config
+// empty the car job configuration (SDK 1.15), keeps the state flags and the
+// result of the last delivered/cancelled car job
+void clear_car_job_config() {
+  auto& car_job = telem_ptr->carJob;
+  car_job.income = 0;
+  car_job.cargoUnitCount = 0;
+  car_job.deliveryTime = 0;
+  car_job.plannedDistanceKm = 0;
+  car_job.customerPrioCargoHandling = false;
+  car_job.customerPrioTime = false;
+  car_job.customerPrioVehicleAppearance = false;
+  memset(car_job.cargoId, 0, stringsize);
+  memset(car_job.cargo, 0, stringsize);
+  memset(car_job.cityDstId, 0, stringsize);
+  memset(car_job.cityDst, 0, stringsize);
+  memset(car_job.citySrcId, 0, stringsize);
+  memset(car_job.citySrc, 0, stringsize);
+  memset(car_job.compDstId, 0, stringsize);
+  memset(car_job.compDst, 0, stringsize);
+  memset(car_job.compSrcId, 0, stringsize);
+  memset(car_job.compSrc, 0, stringsize);
+  memset(car_job.jobMarket, 0, sizeof car_job.jobMarket);
+}
+
+// Function: clear_car_job_result
+// reset the values of the last delivered/cancelled car job before a new event
+void clear_car_job_result() {
+  auto& car_job = telem_ptr->carJob;
+  car_job.deliveredRevenue = 0;
+  car_job.cancelledPenalty = 0;
+  car_job.deliveredDeliveryTime = 0;
+  car_job.deliveredEarnedXp = 0;
+  car_job.deliveredCargoDamage = 0;
+  car_job.deliveredVehicleDamage = 0;
+  car_job.deliveredDistanceKm = 0;
+}
+
 // Function: set_trailer_values_zero
 // set every trailer value 0/empty string
 void set_trailer_values_zero(unsigned int trailer_id = 0) {
@@ -560,9 +598,28 @@ SCSAPI_VOID telemetry_gameplay(const scs_event_t event,
              0) {
     type = train;
     telem_ptr->special_b.train ^= true;
+  } else if (strcmp(info->id,
+                    SCS_TELEMETRY_GAMEPLAY_EVENT_car_job_cancelled) == 0) {
+    type = car_job_cancelled;
+    clear_car_job_result();
+    telem_ptr->carJob.jobCancelled ^= true;
+    telem_ptr->carJob.finishedTime = telem_ptr->common_ui.time_abs;
+    telem_ptr->carJob.onJob = false;
+    telem_ptr->carJob.jobFinished ^= true;
+  } else if (strcmp(info->id,
+                    SCS_TELEMETRY_GAMEPLAY_EVENT_car_job_delivered) == 0) {
+    type = car_job_delivered;
+    clear_car_job_result();
+    telem_ptr->carJob.jobDelivered ^= true;
+    telem_ptr->carJob.finishedTime = telem_ptr->common_ui.time_abs;
+    telem_ptr->carJob.onJob = false;
+    telem_ptr->carJob.jobFinished ^= true;
   } else {
     log_line(SCS_LOG_TYPE_warning,
              "Something went wrong with this gameplay event %s", info->id);
+    // Unknown event: do not let its attributes reach the handlers of another
+    // event (type would default to job.cancelled and wipe the truck job).
+    return;
   }
 
   // attribute is a pointer array that is never null so ... i have no clue how
@@ -605,6 +662,16 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
     type = truck;
   } else if (strcmp(info->id, SCS_TELEMETRY_CONFIG_job) == 0) {
     type = job;
+  } else if (strcmp(info->id, SCS_TELEMETRY_CONFIG_car_job) == 0) {
+    type = car_job;
+    // The game sends the full attribute set each time: start from a clean
+    // job so values of a previous car job do not linger.
+    clear_car_job_config();
+  } else if (strcmp(info->id, SCS_TELEMETRY_CONFIG_bus_job) == 0) {
+    // Attributes are not documented by SCS yet, only track whether a bus job
+    // is active.
+    telem_ptr->sdk115.onBusJob = info->attributes->name != nullptr;
+    return;
   } else {
     // check if it is trailer with backwards compatibility
     if (check_max_version(13, 0)) {
@@ -656,6 +723,18 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
   }
   // if id of config is "job" but without element and we are on a job -> we
   // finished it now
+  if (type == car_job) {
+    if (is_empty && telem_ptr->carJob.onJob) {
+      telem_ptr->carJob.onJob = false;
+      telem_ptr->carJob.jobFinished ^= true;
+      telem_ptr->carJob.finishedTime = telem_ptr->common_ui.time_abs;
+    } else if (!is_empty && !telem_ptr->carJob.onJob) {
+      telem_ptr->carJob.onJob = true;
+      telem_ptr->carJob.startingTime = telem_ptr->common_ui.time_abs;
+    }
+    return;
+  }
+
   if (type == job && is_empty && telem_ptr->special_b.onJob) {
     telem_ptr->special_b.onJob = false;
     telem_ptr->special_b.jobFinished ^= true;
@@ -1192,6 +1271,12 @@ SCS_PLUGIN_EXPORT SCSAPI_RESULT scs_telemetry_init(
       REGISTER_CHANNEL_TRAILER(i, wear.body, float,
                                telem_ptr->trailer.trailer[i].com_f.wearBody);
     }
+  }
+
+  // SDK 1.15: mandatory break (ETS2 1.19+, ATS 1.06+)
+  if (check_min_version(19, 6)) {
+    REGISTER_CHANNEL(CHANNEL_next_mandatory_break, s32,
+                     telem_ptr->sdk115.nextMandatoryBreak);
   }
 
   // Set the structure with defaults.
